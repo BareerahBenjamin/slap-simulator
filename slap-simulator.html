@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>今天想打哪个人格？</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(ellipse at 50% -18%, rgba(255,209,102,.36), transparent 42%),
+      repeating-conic-gradient(from -18deg at 50% 36%, rgba(255,255,255,.09) 0 7deg, transparent 7deg 15deg),
+      radial-gradient(circle at 18px 18px, rgba(255,255,255,.13) 0 2px, transparent 2.5px) 0 0 / 22px 22px,
+      linear-gradient(135deg, rgba(255,93,93,.18) 0 25%, transparent 25% 50%, rgba(78,227,138,.13) 50% 75%, transparent 75%) 0 0 / 44px 44px,
+      linear-gradient(160deg, #29112f 0%, #102c40 44%, #3b240d 100%);
+    background-attachment: fixed;
+    color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: 14px 0 24px;
+    user-select: none; touch-action: manipulation;
+  }
+  body::after {
+    content:""; position:fixed; left:0; right:0; bottom:0; height:34vh; pointer-events:none; z-index:0;
+    background:
+      linear-gradient(180deg, transparent, rgba(0,0,0,.34)),
+      repeating-linear-gradient(105deg, rgba(255,209,102,.18) 0 12px, rgba(255,93,93,.14) 12px 24px, rgba(79,163,184,.18) 24px 36px);
+    opacity:.7;
+  }
+  body > * { position:relative; z-index:1; }
+  h1 { font-size: 21px; margin-bottom: 4px; letter-spacing: 1px; text-shadow:0 3px 0 rgba(0,0,0,.28); }
+  .sub { font-size: 12px; color: #ffe3a6; margin-bottom: 10px; text-shadow:0 2px 3px rgba(0,0,0,.45); }
+
+  .stats { display: flex; gap: 22px; margin-bottom: 10px; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 26px; font-weight: 800; color: #ffd166; }
+  .stat .lbl { font-size: 11px; color: #c9c9d6; }
+
+  /* 当前目标 */
+  .target { font-size: 13px; margin-bottom: 8px; padding: 4px 14px; border-radius: 16px;
+    background: rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.16); }
+  .target b { color:#ffd166; }
+  .target .grp { font-size:11px; opacity:.85; margin-left:4px; }
+
+  /* 蓄力条 */
+  .power-wrap { width: 240px; height: 18px; margin-bottom: 12px; position: relative;
+    border:1px solid rgba(255,255,255,.24); border-radius:10px; overflow:hidden; background-color:rgba(16,15,24,.72);
+    box-shadow:0 4px 12px rgba(0,0,0,.22), inset 0 0 0 1px rgba(0,0,0,.2); }
+  .power-fill { position:absolute; left:0; top:0; height:100%; width:0%;
+    background: linear-gradient(90deg,#4ee38a,#ffd166 55%,#ff5d5d);
+    transition: width .04s linear; }
+  .power-label { position:absolute; width:100%; text-align:center; font-size:11px;
+    line-height:18px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+
+  .stage { position: relative; width: 260px; height: 300px; cursor: pointer; }
+  .stage::before {
+    content:""; position:absolute; left:7px; right:7px; bottom:12px; height:54px; border-radius:50%;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.38), rgba(0,0,0,.08) 58%, transparent 70%);
+  }
+  .stage::after {
+    content:"BATTLE"; position:absolute; left:50%; bottom:18px; transform:translateX(-50%) rotate(-3deg);
+    font-size:28px; font-weight:900; letter-spacing:2px; color:rgba(255,209,102,.18);
+    -webkit-text-stroke:1px rgba(255,255,255,.16);
+  }
+
+  /* ====== 脸（容器负责旋转，皮肤是内层） ====== */
+  .face {
+    position:absolute; left:30px; top:34px; width:200px; height:220px;
+    transform-origin:50% 90%; will-change:transform;
+  }
+  .skin {
+    position:absolute; inset:0; z-index:1;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 42%, rgba(0,0,0,.12)),
+      var(--skin,#ffe0bd);
+    border-radius: 50% 50% 46% 46%;
+    box-shadow: inset -10px -12px 22px rgba(0,0,0,.10), inset 8px 8px 14px rgba(255,255,255,.18);
+  }
+  .ear { position:absolute; top:104px; width:32px; height:44px; background:var(--skin,#ffcfa0); border-radius:50%;
+    box-shadow: inset -3px -3px 6px rgba(0,0,0,.12); z-index:2; }
+  .ear.l { left:10px; } .ear.r { right:10px; }
+
+  /* 头发（在皮肤之后：z-index 低于 .skin，只露出脸周围的轮廓） */
+  .hair { position:absolute; background:var(--hair,#7d5ba6); z-index:0;
+    box-shadow: inset -8px -6px 14px rgba(0,0,0,.16); }
+  .face[data-hair="short"]  .hair { left:-8px; top:-16px; width:216px; height:118px; border-radius:52% 52% 46% 46% / 66% 66% 40% 40%; }
+  .face[data-hair="swept"]  .hair { left:-10px; top:-30px; width:220px; height:150px;
+    clip-path: polygon(0 44%, 20% 6%, 46% 26%, 66% 2%, 100% 28%, 100% 100%, 0 100%); }
+  .face[data-hair="long"]   .hair { left:-16px; top:-16px; width:232px; height:250px; border-radius:48% 48% 34% 34% / 34% 34% 22% 22%; }
+  .face[data-hair="bob"]    .hair { left:-16px; top:-16px; width:232px; height:206px; border-radius:50% 50% 46% 46%; }
+  .face[data-hair="wavy"]   .hair { left:-18px; top:-18px; width:236px; height:212px; border-radius:60% 60% 42% 42% / 55% 55% 45% 45%; }
+  .face[data-hair="curly"]  .hair { left:-22px; top:-26px; width:244px; height:150px; border-radius:50%;
+    box-shadow: 34px 8px 0 -6px var(--hair,#333), -34px 8px 0 -6px var(--hair,#333), 0 -14px 0 -4px var(--hair,#333), inset -8px -6px 14px rgba(0,0,0,.16); }
+  .face[data-hair="spiky"]  .hair { left:-12px; top:-30px; width:224px; height:150px;
+    clip-path: polygon(0 60%, 9% 22%, 19% 48%, 31% 8%, 44% 42%, 56% 6%, 69% 44%, 81% 14%, 91% 48%, 100% 62%, 100% 100%, 0 100%); }
+  .face[data-hair="bald"]   .hair { left:-8px; top:6px; width:216px; height:110px; border-radius:52% 52% 40% 40% / 90% 90% 30% 30%; }
+
+  /* 发髻 */
+  .bun { display:none; position:absolute; z-index:0; top:-24px; left:50%; transform:translateX(-50%);
+    width:56px; height:56px; border-radius:50%; background:var(--hair,#888);
+    box-shadow: inset -4px -4px 8px rgba(0,0,0,.2); }
+  .face[data-hair="bun"] .hair { left:-8px; top:-6px; width:216px; height:108px; border-radius:52% 52% 46% 46% / 70% 70% 40% 40%; }
+  .face[data-hair="bun"] .bun { display:block; }
+
+  /* 刘海：压在皮肤之上盖住额头，避免“秃头”感 */
+  .bangs { position:absolute; z-index:2; left:-8px; right:-8px; top:-18px; height:96px;
+    background:var(--hair,#7d5ba6); box-shadow: inset 0 -10px 16px rgba(0,0,0,.18);
+    clip-path: polygon(0 14%, 14% 0, 86% 0, 100% 14%, 100% 50%, 74% 78%, 46% 60%, 20% 82%, 0 58%); }
+  .face[data-hair="bald"]  .bangs { display:none; }
+  .face[data-hair="swept"] .bangs { clip-path: polygon(0 14%, 14% 0, 100% 0, 100% 34%, 28% 86%, 0 56%); }
+  .face[data-hair="spiky"] .bangs { clip-path: polygon(0 14%,14% 0,86% 0,100% 14%,100% 40%,88% 74%,78% 40%,66% 80%,54% 40%,42% 78%,30% 42%,18% 76%,6% 44%,0 64%); }
+  .face[data-hair="long"]  .bangs { height:104px; clip-path: polygon(0 12%,12% 0,88% 0,100% 12%,100% 62%,80% 74%,58% 60%,36% 74%,16% 60%,0 70%); }
+  .face[data-hair="bob"]   .bangs { clip-path: polygon(0 12%,12% 0,88% 0,100% 12%,100% 66%,0 66%); }
+  .face[data-hair="curly"] .bangs { clip-path: polygon(0 14%,14% 0,86% 0,100% 14%,100% 46%,90% 66%,74% 46%,58% 68%,42% 46%,26% 68%,10% 46%,0 62%); }
+
+  /* 眉毛 */
+  .brow { position:absolute; top:78px; width:30px; height:7px; background:var(--brow,#6a4a2a);
+    border-radius:4px; z-index:3; }
+  .brow.l { left:40px; } .brow.r { right:40px; }
+  .face[data-brow="angry"] .brow.l { transform: rotate(16deg); }
+  .face[data-brow="angry"] .brow.r { transform: rotate(-16deg); }
+  .face[data-brow="thick"] .brow { height:11px; top:76px; }
+  .face[data-brow="raised"] .brow { top:72px; height:6px; border-radius:6px 6px 3px 3px; }
+  .face[data-brow="soft"] .brow.l { transform: rotate(-10deg); }
+  .face[data-brow="soft"] .brow.r { transform: rotate(10deg); }
+  /* 挑眉钩：一对镜面对称的勾（辩论家） */
+  .face[data-brow="hook"] .brow { width:28px; height:8px; border-radius:6px; overflow:visible; }
+  .face[data-brow="hook"] .brow::after { content:""; position:absolute; top:-6px; width:15px; height:8px;
+    background:var(--brow,#3a3a40); border-radius:6px; }
+  .face[data-brow="hook"] .brow.l { transform: rotate(-9deg); }
+  .face[data-brow="hook"] .brow.l::after { left:-3px; transform-origin:left center; transform:rotate(42deg); }
+  .face[data-brow="hook"] .brow.r { transform: rotate(9deg); }
+  .face[data-brow="hook"] .brow.r::after { right:-3px; transform-origin:right center; transform:rotate(-42deg); }
+
+  /* 眼睛 */
+  .eye { position: absolute; top: 92px; width: 30px; height: 30px; z-index:3;
+    background: #fff; border-radius: 50%; box-shadow: inset 0 0 0 2px #d9a97e; }
+  .eye.l { left: 44px; } .eye.r { right: 44px; }
+  .eye::after { content:""; position:absolute; top:9px; left:9px;
+    width:12px; height:12px; background:#3a2a1a; border-radius:50%; }
+  .face.dizzy .eye::after { animation: spinEye .5s linear infinite; }
+  @keyframes spinEye { to { transform: rotate(360deg) translateX(3px); } }
+
+  /* 嘴巴 */
+  .mouth { position:absolute; bottom:56px; left:50%; transform:translateX(-50%); z-index:3; }
+  .face[data-mouth="neutral"] .mouth { width:42px; height:6px; background:#a5542a; border-radius:4px; }
+  .face[data-mouth="smile"]  .mouth { width:56px; height:26px; border:4px solid transparent;
+    border-bottom-color:#a5542a; border-radius:0 0 60px 60px; }
+  .face[data-mouth="open"]   .mouth { width:48px; height:30px; background:#992e22;
+    border-radius:12px 12px 40px 40px; box-shadow: inset 0 8px 0 -3px #fff; }
+  .face[data-mouth="smirk"]  .mouth { width:46px; height:8px; background:#a5542a; border-radius:6px;
+    transform: translateX(-50%) rotate(-13deg); }
+  .face[data-mouth="frown"]  .mouth { width:54px; height:24px; border:4px solid transparent;
+    border-top-color:#a5542a; border-radius:60px 60px 0 0; bottom:50px; }
+  .face[data-mouth="lips"]   .mouth { width:46px; height:17px; background:var(--lip,#c05a7a);
+    border-radius:50% 50% 50% 50% / 40% 40% 60% 60%; box-shadow: inset 0 -3px 3px rgba(0,0,0,.2); }
+  .face[data-mouth="lips"]   .mouth::after { content:""; position:absolute; left:6px; right:6px; top:50%;
+    height:2px; background:rgba(0,0,0,.25); }
+
+  /* 胡子 */
+  .mustache { display:none; position:absolute; z-index:4; top:142px; left:50%; transform:translateX(-50%);
+    width:64px; height:15px; background:var(--fh,#5a3a22); border-radius:0 0 26px 26px;
+    box-shadow: inset 0 3px 3px rgba(0,0,0,.2); }
+  .face[data-fh="mustache"] .mustache { display:block; }
+
+  .beard { display:none; position:absolute; }
+  .face[data-fh="stubble"] .beard { display:block; left:24px; right:24px; bottom:34px; height:70px;
+    background: radial-gradient(ellipse at 50% 20%, rgba(60,40,25,.42), rgba(60,40,25,0) 70%); z-index:4; }
+  .face[data-fh="longbeard"] .beard { display:block; left:36px; right:36px; top:120px; height:150px;
+    background:var(--fh,#e6e6ea); border-radius:20px 20px 44% 44% / 20px 20px 90% 90%;
+    box-shadow: inset -6px -6px 12px rgba(0,0,0,.12); z-index:4; }
+
+  /* 眼镜 */
+  .glasses { display:none; position:absolute; z-index:5; top:90px; left:50%; transform:translateX(-50%);
+    width:126px; height:34px; }
+  .glasses i { position:absolute; top:0; width:38px; height:34px; border:4px solid var(--glass,#333);
+    border-radius:8px; background:transparent; }
+  .glasses i.l { left:6px; } .glasses i.r { right:6px; }
+  .glasses::before { content:""; position:absolute; top:14px; left:44px; width:38px; height:4px; background:var(--glass,#333); }
+  .face[data-glasses="rect"] .glasses,
+  .face[data-glasses="round"] .glasses,
+  .face[data-glasses="sun"] .glasses,
+  .face[data-glasses="goggles"] .glasses,
+  .face[data-glasses="forehead"] .glasses { display:block; }
+  .face[data-glasses="round"] .glasses i { border-radius:50%; }
+  .face[data-glasses="sun"] .glasses i { background:var(--glass,#222); border-color:#111; }
+  .face[data-glasses="goggles"] .glasses { top:56px; width:132px; }
+  .face[data-glasses="goggles"] .glasses i { border-radius:50%; width:42px; height:34px; background:rgba(60,60,70,.85); border-color:#333; }
+  .face[data-glasses="forehead"] .glasses { top:58px; }
+
+  /* 头饰 */
+  .headwear { display:none; position:absolute; z-index:6; }
+  .face[data-hw="nurse"] .headwear { display:block; left:44px; top:-6px; width:112px; height:44px;
+    background:var(--hw,#fff); border-radius:8px 8px 0 0;
+    box-shadow: inset 0 -8px 0 -4px rgba(0,0,0,.08); }
+  .face[data-hw="nurse"] .headwear::after { content:""; position:absolute; left:50%; top:10px; transform:translateX(-50%);
+    width:22px; height:22px;
+    background:linear-gradient(#e23b3b,#e23b3b) center/8px 22px no-repeat, linear-gradient(#e23b3b,#e23b3b) center/22px 8px no-repeat; }
+  .face[data-hw="headband"] .headwear { display:block; left:-8px; top:34px; width:216px; height:16px; background:var(--hw,#c94);
+    box-shadow: inset 0 -3px 4px rgba(0,0,0,.2); }
+  .face[data-hw="headband"] .headwear::after { content:""; position:absolute; right:-4px; top:2px; width:18px; height:26px;
+    background:var(--hw,#c94); transform:rotate(24deg); border-radius:3px; }
+  .face[data-hw="cap"] .headwear { display:block; left:-6px; top:-8px; width:212px; height:56px; background:var(--hw,#d9b115);
+    border-radius:50% 50% 0 0 / 80% 80% 0 0; box-shadow: inset -8px -6px 12px rgba(0,0,0,.18); }
+
+  /* 手里的道具（提示身份） */
+  .prop { position:absolute; z-index:7; right:-30px; top:2px; font-size:34px;
+    transform: rotate(12deg); filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+
+  .mark { position:absolute; width:70px; height:70px; opacity:0; pointer-events:none; z-index:5;
+    background: radial-gradient(circle, rgba(255,40,40,.55), rgba(255,40,40,0) 70%);
+    border-radius:50%; }
+  .hand {
+    position: absolute; top: -80px; left: -140px;
+    font-size: 90px; opacity: 0; z-index:8;
+    filter: drop-shadow(0 6px 6px rgba(0,0,0,.4)); pointer-events: none;
+  }
+  .pop { position:absolute; font-weight:800; font-size:24px; color:#ff5d5d; z-index:9;
+    pointer-events:none; opacity:0; text-shadow:0 2px 6px rgba(0,0,0,.5); }
+
+  /* 头上转圈的小星星（被打晕后“眼冒金星”） */
+  .stars { position:absolute; pointer-events:none; z-index:10; width:0; height:0; opacity:0; }
+  .stars.show { opacity:1; animation: starsSpin 1.1s linear infinite, starsFade 1.9s ease-out forwards; }
+  .stars .st { position:absolute; font-size:19px; left:0; top:0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.35)); animation: starTwinkle .5s ease-in-out infinite alternate; }
+  @keyframes starsSpin  { to { transform: rotate(360deg); } }
+  @keyframes starsFade  { 0%{opacity:0} 12%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+  @keyframes starTwinkle{ from{ filter:brightness(1) drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+                          to  { filter:brightness(1.6) drop-shadow(0 1px 3px rgba(0,0,0,.4)); } }
+
+  /* 挨打后鼓起的红肿包 */
+  .swell { position:absolute; z-index:4; width:62px; height:54px; border-radius:50%;
+    top:120px; opacity:0; pointer-events:none;
+    background: radial-gradient(circle at 50% 38%, rgba(255,135,135,.9), rgba(255,86,86,.5) 52%, rgba(255,86,86,0) 72%);
+    box-shadow: inset -3px -4px 8px rgba(190,30,30,.35); }
+  .swell.show { animation: swellPuff 2.8s ease-out forwards; }
+  @keyframes swellPuff {
+    0%   { opacity:0; transform:scale(.25); }
+    16%  { opacity:1; transform:scale(1.18); }
+    38%  { transform:scale(1); }
+    100% { opacity:0; transform:scale(1.06); }
+  }
+
+  @keyframes slapHand {
+    0%   { transform: translate(-40px,-40px) rotate(-30deg); opacity:0; }
+    35%  { transform: translate(90px,70px) rotate(20deg);   opacity:1; }
+    55%  { transform: translate(90px,70px) rotate(20deg);   opacity:1; }
+    100% { transform: translate(140px,20px) rotate(40deg);  opacity:0; }
+  }
+  @keyframes markShow { 0%{opacity:.9;transform:scale(.6)} 100%{opacity:0;transform:scale(1.3)} }
+  @keyframes popUp { 0%{opacity:0;transform:translateY(0) scale(.6)} 30%{opacity:1} 100%{opacity:0;transform:translateY(-70px) scale(1.2)} }
+
+  .hint { margin-top: 12px; font-size: 13px; color:#ffe3a6; height:18px; text-shadow:0 2px 3px rgba(0,0,0,.45); }
+
+  /* ====== 选择器 ====== */
+  .picker { width: min(94vw, 460px); margin-top: 10px; }
+  .pk-title { font-size: 11px; color:#c9c9d6; margin: 0 0 4px 6px; letter-spacing:1px; }
+  .pk-row { display:flex; gap:6px; overflow-x:auto; padding:4px 6px 8px; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; }
+  .pk-row::-webkit-scrollbar { display:none; }
+  .chip { flex:0 0 auto; padding:5px 10px; border-radius:14px; font-size:12px; cursor:pointer;
+    background:rgba(25,24,34,.72); color:#eaded2; border:1px solid rgba(255,255,255,.16);
+    display:flex; flex-direction:column; align-items:center; line-height:1.25; min-width:52px; }
+  .chip .code { font-size:10px; opacity:.8; }
+  .chip .emo { font-size:18px; }
+  .chip.persona { border-bottom:3px solid var(--c,#888); }
+  .chip.active { color:#150f0f; font-weight:800; background:var(--c,#ffd166); border-color:transparent;
+    box-shadow:0 3px 8px rgba(0,0,0,.3); }
+  .chip:active { transform:scale(.94); }
+
+  .btns { margin-top:12px; display:flex; gap:12px; }
+  button { background:rgba(25,24,34,.72); color:#eaded2; border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    padding:8px 16px; border-radius:20px; font-size:13px; cursor:pointer;
+    box-shadow:inset 0 -4px 0 rgba(0,0,0,.24), 0 4px 10px rgba(0,0,0,.18); }
+  button:active { transform:scale(.95); }
+
+  /* ====== 挨打排行榜（脸旁边的可收缩抽屉） ====== */
+  .board { position: fixed; z-index: 30; top: 50%; right: 0; transform: translateY(-50%);
+    width: min(76vw, 226px);
+    background: rgba(16,15,24,.86);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border:1px solid rgba(255,255,255,.16); border-right:none;
+    border-radius: 14px 0 0 14px; padding: 10px 12px 12px;
+    box-shadow: -10px 0 24px rgba(0,0,0,.36);
+    transition: transform .32s cubic-bezier(.4,0,.2,1); }
+  .board.collapsed { transform: translate(100%, -50%); }
+  /* 榜单内容独立滚动，放内层，避免裁掉外面的把手 */
+  #boardList { max-height: 62vh; overflow-y: auto; scrollbar-width: none; }
+  #boardList::-webkit-scrollbar { display:none; }
+  /* 我的 / 全网 切换 */
+  .board-seg { display:flex; gap:4px; margin-bottom:8px; padding:3px;
+    background:rgba(0,0,0,.28); border-radius:12px; }
+  .seg-btn { flex:1; padding:5px 0; border:none; border-radius:9px; cursor:pointer;
+    font-size:12px; font-weight:700; color:#c9c9d6; background:transparent;
+    box-shadow:none; display:flex; align-items:center; justify-content:center; gap:5px; }
+  .seg-btn.active { color:#150f0f; background:#ffd166; }
+  .seg-btn:active { transform:scale(.96); }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:#666; display:inline-block; }
+  .live-dot.on { background:#4ee38a; box-shadow:0 0 0 0 rgba(78,227,138,.7); animation:livePulse 1.8s infinite; }
+  @keyframes livePulse { 0%{box-shadow:0 0 0 0 rgba(78,227,138,.6)} 70%{box-shadow:0 0 0 6px rgba(78,227,138,0)} 100%{box-shadow:0 0 0 0 rgba(78,227,138,0)} }
+  /* 收起后仍露在屏幕右缘的把手 */
+  .board-tab { position:absolute; left:-32px; top:50%; transform:translateY(-50%);
+    width:32px; padding:12px 0; border-radius:12px 0 0 12px; cursor:pointer;
+    background: rgba(16,15,24,.86); border:1px solid rgba(255,255,255,.16); border-right:none;
+    box-shadow:-6px 0 16px rgba(0,0,0,.3);
+    display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .board-tab .ic { font-size:16px; }
+  .board-tab .tl { writing-mode: vertical-rl; font-size:11px; letter-spacing:2px; color:#eaded2; }
+  .board-tab .ar { font-size:10px; color:#ffd166; transition:transform .32s; }
+  .board.collapsed .board-tab .ar { transform:rotate(180deg); }
+  @keyframes tabPulse { 0%{transform:translateY(-50%) scale(1)} 45%{transform:translateY(-50%) scale(1.18)} 100%{transform:translateY(-50%) scale(1)} }
+  .board-tab.pulse { animation: tabPulse .42s ease; }
+  .board-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .board-head .bt { font-size:14px; font-weight:800; letter-spacing:1px; color:#ffd166;
+    text-shadow:0 2px 3px rgba(0,0,0,.4); }
+  .board-head .clr { font-size:11px; padding:4px 10px; border-radius:14px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+    color:#eaded2; cursor:pointer; }
+  .board-head .clr:active { transform:scale(.94); }
+  .board-empty { font-size:12px; color:#c9c9d6; text-align:center; padding:14px 0; }
+  .rank { display:flex; align-items:center; gap:8px; padding:7px 6px; border-radius:10px; }
+  .rank + .rank { margin-top:3px; }
+  .rank:nth-child(odd) { background:rgba(255,255,255,.04); }
+  .rank.top { background:linear-gradient(90deg, rgba(255,209,102,.22), rgba(255,209,102,.04)); }
+  .rank .pos { flex:0 0 22px; text-align:center; font-size:14px; font-weight:800; color:#ffe3a6; }
+  .rank .who { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; line-height:1.2; }
+  .rank .who .nm { font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rank .who .cd { font-size:10px; opacity:.72; }
+  .rank .grp-dot { flex:0 0 8px; width:8px; height:8px; border-radius:50%; }
+  .rank .metric { flex:0 0 auto; text-align:right; }
+  .rank .metric .mv { font-size:15px; font-weight:800; color:#ffd166; }
+  .rank .metric .mu { font-size:10px; opacity:.7; margin-left:2px; }
+  .rank .metric .sub2 { font-size:10px; opacity:.68; }
+</style>
+</head>
+<body>
+  <h1>👋 今天想打哪个人格？</h1>
+  <div class="sub">选人格 · 挑工具 · 按住脸蓄力，松手把它抽得 pia~pia~ 转圈 · 看谁挨打最多</div>
+
+  <div class="stats">
+    <div class="stat"><div class="num" id="count">0</div><div class="lbl">已抽（下）</div></div>
+    <div class="stat"><div class="num" id="spins">0</div><div class="lbl">累计圈数</div></div>
+    <div class="stat"><div class="num" id="best">0</div><div class="lbl">单次最多圈</div></div>
+  </div>
+
+  <div class="target" id="target"></div>
+
+  <div class="power-wrap">
+    <div class="power-fill" id="powerFill"></div>
+    <div class="power-label" id="powerLabel">按住脸开始蓄力</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="hand" id="hand">🖐️</div>
+    <div class="face" id="face">
+      <div class="hair"></div>
+      <div class="bun"></div>
+      <div class="skin"></div>
+      <div class="bangs"></div>
+      <div class="ear l"></div><div class="ear r"></div>
+      <div class="beard"></div>
+      <div class="brow l"></div><div class="brow r"></div>
+      <div class="eye l"></div><div class="eye r"></div>
+      <div class="glasses"><i class="l"></i><i class="r"></i></div>
+      <div class="mustache"></div>
+      <div class="mouth"></div>
+      <div class="headwear"></div>
+      <div class="prop" id="prop"></div>
+      <div class="mark" id="mark"></div>
+      <div class="swell" id="swell"></div>
+    </div>
+  </div>
+
+  <div class="hint" id="hint">按住脸蓄力，松手看它转几圈 🌀</div>
+
+  <div class="picker">
+    <div class="pk-title">🧑 选人格（紫·分析家 / 绿·外交家 / 蓝·守护者 / 黄·探险家）</div>
+    <div class="pk-row" id="personaRow"></div>
+  </div>
+  <div class="picker">
+    <div class="pk-title">🧰 选工具（不同手感、不同响声）</div>
+    <div class="pk-row" id="toolRow"></div>
+  </div>
+
+  <div class="btns">
+    <button id="muteBtn">🔊 音效开</button>
+    <button id="resetBtn">↺ 重置</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="board-tab" id="boardTab">
+      <span class="ic">🏆</span>
+      <span class="tl">排行榜</span>
+      <span class="ar">▶</span>
+    </div>
+    <div class="board-head">
+      <span class="bt">🏆 挨打排行榜</span>
+      <span class="clr" id="clearBoard">清空我的</span>
+    </div>
+    <div class="board-seg" id="boardSeg">
+      <button class="seg-btn active" data-tab="local">我的</button>
+      <button class="seg-btn" data-tab="global">全网 <span class="live-dot" id="liveDot"></span></button>
+    </div>
+    <div id="boardList"></div>
+  </div>
+
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const face  = document.getElementById('face');
+  const hand  = document.getElementById('hand');
+  const mark  = document.getElementById('mark');
+  const swell = document.getElementById('swell');
+  const prop  = document.getElementById('prop');
+  const target= document.getElementById('target');
+  const elCount = document.getElementById('count');
+  const elSpins = document.getElementById('spins');
+  const elBest  = document.getElementById('best');
+  const hint    = document.getElementById('hint');
+  const powerFill  = document.getElementById('powerFill');
+  const powerLabel = document.getElementById('powerLabel');
+
+  let count = 0, totalSpins = 0, bestSpins = 0, muted = false;
+  let audioCtx = null;
+
+  const MAX_CHARGE = 2500;     // 满蓄力所需毫秒
+  const MAX_SPINS  = 8;        // 满蓄力最多转几圈
+  let charging = false, chargeStart = 0, chargeRAF = 0, busy = false;
+  let pi = 0, ti = 0;          // 当前人格 / 工具索引
+
+  const GROUP = {
+    analyst:  {c:'#8a63b8', label:'紫·分析家'},
+    diplomat: {c:'#5aa96a', label:'绿·外交家'},
+    sentinel: {c:'#3fa1bb', label:'蓝·守护者'},
+    explorer: {c:'#e0b52a', label:'黄·探险家'}
+  };
+
+  // 16 人格：由参考图提炼的发型 / 眉眼 / 胡子 / 眼镜 / 帽子 / 嘴型 / 道具
+  const PERSONA = [
+    // —— 分析家（紫） ——
+    {code:'INTJ', name:'建筑师',   group:'analyst', skin:'#f2caa0', hair:'swept', hairColor:'#6d4f96', brow:'flat',  browColor:'#5a3f7a', mouth:'neutral', fh:'mustache', fhColor:'#6d4f96', prop:'📐'},
+    {code:'ENTJ', name:'指挥官',   group:'analyst', skin:'#efc79c', hair:'bob',   hairColor:'#45454e', brow:'angry', browColor:'#26262c', mouth:'lips', lip:'#b5476b', prop:'👑'},
+    {code:'ENTP', name:'辩论家',   group:'analyst', skin:'#f0c79c', hair:'short', hairColor:'#8f8f97', brow:'hook', browColor:'#3a3a40', mouth:'smirk', prop:'🎤'},
+    {code:'INTP', name:'逻辑学家', group:'analyst', skin:'#eec3a0', hair:'long',  hairColor:'#7a5aa0', brow:'raised',browColor:'#5a3f7a', mouth:'smirk', glasses:'rect', glass:'#6a4c93', prop:'🧪'},
+
+    // —— 外交家（绿） ——
+    {code:'ENFJ', name:'主人公',   group:'diplomat', skin:'#e8b98f', hair:'long', hairColor:'#2b2b30', brow:'thick', browColor:'#18181c', mouth:'neutral', fh:'stubble', prop:'🗡️'},
+    {code:'ENFP', name:'竞选者',   group:'diplomat', skin:'#f0c49a', hair:'bob',  hairColor:'#5aa96a', brow:'soft',  browColor:'#3f7a4f', mouth:'open', prop:'🎒'},
+    {code:'INFJ', name:'提倡者',   group:'diplomat', skin:'#eec3a0', hair:'bald', hairColor:'#b9b9be', brow:'soft',  browColor:'#9a9aa0', mouth:'neutral', fh:'longbeard', fhColor:'#e7e7ec', prop:'🔮'},
+    {code:'INFP', name:'调停者',   group:'diplomat', skin:'#f2caa0', hair:'long', hairColor:'#c3d24a', brow:'soft',  browColor:'#9aa83a', mouth:'smile', prop:'🌼'},
+
+    // —— 守护者（蓝） ——
+    {code:'ESFJ', name:'执政官',   group:'sentinel', skin:'#eab98f', hair:'short', hairColor:'#3a3a42', brow:'soft', browColor:'#22222a', mouth:'open', prop:'🎂'},
+    {code:'ESTJ', name:'总经理',   group:'sentinel', skin:'#efc79c', hair:'bun',   hairColor:'#8a8a90', brow:'angry',browColor:'#565660', mouth:'lips', lip:'#2e97b5', glasses:'rect', glass:'#2e97b5', prop:'📋'},
+    {code:'ISFJ', name:'守卫者',   group:'sentinel', skin:'#f0c49a', hair:'short', hairColor:'#2e2e34', brow:'soft', browColor:'#1c1c22', mouth:'smile', lip:'#2fb0c0', hw:'nurse', hwColor:'#dff3f5', prop:'💊'},
+    {code:'ISTJ', name:'物流师',   group:'sentinel', skin:'#eec3a0', hair:'short', hairColor:'#cfcfd4', brow:'flat', browColor:'#a9a9b0', mouth:'neutral', glasses:'rect', glass:'#2e97b5', prop:'📦'},
+
+    // —— 探险家（黄） ——
+    {code:'ESFP', name:'表演者',   group:'explorer', skin:'#eab98f', hair:'curly', hairColor:'#3a3a40', brow:'raised', browColor:'#22222a', mouth:'open', prop:'🪇'},
+    {code:'ESTP', name:'企业家',   group:'explorer', skin:'#f0c49a', hair:'swept', hairColor:'#d9b115', brow:'thick', browColor:'#a8850f', mouth:'smirk', glasses:'sun', glass:'#1c1c1c', prop:'💼'},
+    {code:'ISFP', name:'探险家',   group:'explorer', skin:'#f2caa0', hair:'spiky', hairColor:'#e0c020', brow:'soft', browColor:'#a8850f', mouth:'smile', hw:'headband', hwColor:'#c9942a', prop:'🎨'},
+    {code:'ISTP', name:'鉴赏家',   group:'explorer', skin:'#e8b98f', hair:'short', hairColor:'#c9a615', brow:'angry', browColor:'#8a6f0d', mouth:'neutral', glasses:'goggles', glass:'#333', prop:'🔧'}
+  ];
+
+  // 默认待机提示语（随人格变化）
+  const LINES = {
+    INTJ:'建筑师正在计算你的胜算 🧠', ENTJ:'指挥官不屑地看着你 👑',
+    ENTP:'辩论家已经准备好反驳 🎤',  INTP:'逻辑学家在推演这一巴掌 🧪',
+    ENFJ:'主人公温柔地等你动手 🗡️',  ENFP:'竞选者超期待被抽转圈 🎒',
+    INFJ:'提倡者淡定地捋了捋胡子 🔮', INFP:'调停者眼里泛起了泪光 🌼',
+    ESFJ:'执政官端着蛋糕迎接你 🎂',  ESTJ:'总经理让你先填张表 📋',
+    ISFJ:'守卫者已备好创可贴 💊',    ISTJ:'物流师在给巴掌登记 📦',
+    ESFP:'表演者摇起了沙锤 🪇',      ESTP:'企业家戴墨镜挑衅你 🕶️',
+    ISFP:'探险家在给你调色 🎨',      ISTP:'鉴赏家在检查你的手法 🔧'
+  };
+  // 满蓄力时的人格专属吐槽
+  const TAUNTS = {
+    INTJ:'你的暴力毫无规划，愚蠢。', ENTJ:'就这点力度？重来！',
+    ENTP:'我可以论证这一巴掌不成立。', INTP:'理论上我不该被扇中的…',
+    ENFJ:'我原谅你，但下手轻点。',   ENFP:'哇！转圈圈好好玩，再来！',
+    INFJ:'暴力填不满内心的空虚。',   INFP:'我们……能不能好好谈谈？',
+    ESFJ:'打是打了，蛋糕还吃吗？',   ESTJ:'按流程你得先预约再扇。',
+    ISFJ:'疼…要不要我给你贴个创可贴。', ISTJ:'此巴掌已签收，第若干次。',
+    ESFP:'哇转得好嗨，加场加场！',   ESTP:'这波我血赚，来点狠的！',
+    ISFP:'转晕的色彩……好有灵感。',  ISTP:'力学角度看，你姿势不标准。'
+  };
+
+  // 🥚 彩蛋：INTP 打不中，每次闪身后甩一句挑衅
+  const INTP_TAUNTS = [
+    '你以为打得到我？你的轨迹我三步前就算好了。',
+    '从力学角度看，你这一巴掌根本落不到我脸上。',
+    '我思考了一下——不，你打不中。',
+    '手速这么慢，建议先补一下反应速度再来。',
+    '我在脑内已经躲过你一百次了，这才第几次？',
+    '你的攻击存在明显的逻辑漏洞。',
+    '别费劲了，物理规律不站在你这边。',
+    '就这？我连推演都懒得启动。',
+    '要不要我给你画个受力分析图，解释你为什么打不中？',
+    '巧了，我刚好站在你必然会失手的那个点上。'
+  ];
+  let intpIdx = 0;   // 挑衅台词轮播下标
+
+  // 6 种工具：不同表情符号 + 不同合成音
+  const TOOLS = [
+    {id:'hand', name:'手',       emoji:'🖐️', hint:'啪的一声，最原汁原味', sound:{filter:'bandpass', freq:1900, freqDrop:900, jitter:300, gain:0.9,  dur:0.16, decay:3}},
+    {id:'bean', name:'豆橛子',   emoji:'🫛', hint:'又细又疼，咻的一下',   sound:{filter:'bandpass', freq:2600, freqDrop:500, jitter:200, gain:0.85, dur:0.12, decay:4, q:2,   snap:{freq:1500, drop:900, dur:0.05}}},
+    {id:'fur',  name:'大毛领子', emoji:'🧣', hint:'噗——闷闷的软击',       sound:{filter:'lowpass',  freq:650,  freqDrop:200, jitter:100, gain:0.8,  dur:0.24, decay:2}},
+    {id:'dust', name:'鸡毛掸子', emoji:'🧹', hint:'唰唰~痒又疼',           sound:{filter:'highpass', freq:3200, freqDrop:0,   jitter:400, gain:0.5,  dur:0.30, decay:1.4, swish:true}},
+    {id:'slip', name:'拖鞋',     emoji:'🩴', hint:'啪叽！扁平又响',         sound:{filter:'lowpass',  freq:1000, freqDrop:300, jitter:150, gain:1.1,  dur:0.13, decay:3}},
+    {id:'whip', name:'皮条',     emoji:'🪢', hint:'啪!!! 一记脆响',        sound:{filter:'bandpass', freq:1600, freqDrop:300, jitter:150, gain:1.05, dur:0.14, decay:4, q:1.5, snap:{freq:240, drop:150, dur:0.08}}},
+    {id:'ruler',  name:'戒尺',   emoji:'📏', hint:'啪！清脆又规矩',        sound:{filter:'bandpass', freq:2200, freqDrop:400, jitter:200, gain:1.0,  dur:0.10, decay:5, q:3,   snap:{freq:1800, drop:1100, dur:0.04}}},
+    {id:'hammer', name:'充气锤', emoji:'🔨', hint:'咘叽~软趴趴的玩具锤',    sound:{filter:'lowpass',  freq:520,  freqDrop:120, jitter:80,  gain:0.85, dur:0.14, decay:2.5, snap:{freq:360, drop:220, dur:0.10}}},
+    {id:'fish',   name:'咸鱼',   emoji:'🐟', hint:'啪叽——湿哒哒的一巴掌',   sound:{filter:'lowpass',  freq:820,  freqDrop:260, jitter:120, gain:1.0,  dur:0.18, decay:2.2, snap:{freq:180, drop:110, dur:0.09}}},
+    {id:'pillow', name:'枕头',   emoji:'🛏️', hint:'噗……几乎不疼',         sound:{filter:'lowpass',  freq:360,  freqDrop:120, jitter:60,  gain:0.7,  dur:0.30, decay:1.6}},
+    {id:'cane',   name:'藤条',   emoji:'🎋', hint:'咻——啪！破空又抽',       sound:{filter:'highpass', freq:2800, freqDrop:200, jitter:300, gain:0.9,  dur:0.16, decay:3, swish:true, snap:{freq:520, drop:360, dur:0.10}}}
+  ];
+
+  function ensureAudio(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) audioCtx = new AC();
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // 击打声：读取当前工具的音色配置
+  function playHit(power){
+    if(muted || !audioCtx) return;
+    const s = TOOLS[ti].sound;
+    const sr = audioCtx.sampleRate;
+    const len = Math.max(1, Math.floor(sr * s.dur));
+    const buf = audioCtx.createBuffer(1, len, sr);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<data.length;i++){
+      const t = i/data.length;
+      data[i] = (Math.random()*2-1) * Math.pow(1-t, s.decay);
+    }
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter();
+    flt.type = s.filter;
+    flt.frequency.value = Math.max(120, s.freq - (s.freqDrop||0)*power + Math.random()*(s.jitter||200));
+    if(s.q) flt.Q.value = s.q;
+    const g = audioCtx.createGain();
+    g.gain.value = s.gain * (0.35 + 0.65*power);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start();
+
+    // 脆响 / 抽鞭尾音
+    if(s.snap){
+      const o = audioCtx.createOscillator();
+      const og = audioCtx.createGain();
+      const now = audioCtx.currentTime, f0 = s.snap.freq;
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f0, now);
+      o.frequency.exponentialRampToValueAtTime(Math.max(60, f0 - s.snap.drop), now + s.snap.dur);
+      og.gain.setValueAtTime(0.0001, now);
+      og.gain.exponentialRampToValueAtTime(0.5*(0.4+0.6*power), now + 0.005);
+      og.gain.exponentialRampToValueAtTime(0.0001, now + s.snap.dur);
+      o.connect(og); og.connect(audioCtx.destination);
+      o.start(now); o.stop(now + s.snap.dur + 0.02);
+    }
+    // 鸡毛掸子的第二记轻扫
+    if(s.swish){
+      setTimeout(function(){
+        if(!audioCtx) return;
+        const l2 = Math.floor(sr*s.dur*0.7);
+        const b2 = audioCtx.createBuffer(1, Math.max(1,l2), sr);
+        const d2 = b2.getChannelData(0);
+        for(let i=0;i<d2.length;i++){ const t=i/d2.length; d2[i]=(Math.random()*2-1)*Math.pow(1-t,s.decay); }
+        const s2 = audioCtx.createBufferSource(); s2.buffer=b2;
+        const f2 = audioCtx.createBiquadFilter(); f2.type=s.filter; f2.frequency.value=s.freq*0.8;
+        const g2 = audioCtx.createGain(); g2.gain.value=s.gain*0.5*(0.35+0.65*power);
+        s2.connect(f2); f2.connect(g2); g2.connect(audioCtx.destination);
+        s2.start();
+      }, 70);
+    }
+  }
+
+  // 连击：松手转圈时来一串「piapiapia」，转得越多响得越多
+  function playHitBurst(power, times){
+    const n = Math.max(1, times);
+    for(let k=0;k<n;k++){
+      const delay = k * (95 + Math.random()*45);            // 连击间隔，营造 pia pia pia
+      const pw = Math.max(0.15, power * (1 - k*0.045) + (Math.random()-0.5)*0.1);
+      setTimeout(function(){
+        playHit(pw);
+        flashMark(k % 2 === 0);                              // 每一记都在脸上闪个巴掌印，左右交替
+      }, delay);
+    }
+  }
+
+  // 连击时冒出的临时巴掌印（不随脸旋转，读作一记一记的重击）
+  function flashMark(onLeft){
+    const m = document.createElement('div');
+    m.className = 'mark';
+    m.style.left = (onLeft ? '48px' : '142px');
+    m.style.top  = (120 + Math.random()*40) + 'px';
+    m.style.animation = 'markShow .5s ease-out';
+    stage.appendChild(m);
+    setTimeout(function(){ m.remove(); }, 520);
+  }
+
+  // 蓄力时“嗡”的上升音
+  let chargeOsc = null, chargeGain = null;
+  function startChargeSound(){
+    if(muted || !audioCtx) return;
+    chargeOsc = audioCtx.createOscillator();
+    chargeGain = audioCtx.createGain();
+    chargeOsc.type = 'sawtooth';
+    chargeOsc.frequency.value = 90;
+    chargeGain.gain.value = 0.0;
+    chargeOsc.connect(chargeGain); chargeGain.connect(audioCtx.destination);
+    chargeOsc.start();
+  }
+  function updateChargeSound(power){
+    if(!chargeOsc) return;
+    chargeOsc.frequency.setTargetAtTime(90 + power*260, audioCtx.currentTime, 0.05);
+    chargeGain.gain.setTargetAtTime(0.05 + power*0.12, audioCtx.currentTime, 0.05);
+  }
+  function stopChargeSound(){
+    if(!chargeOsc) return;
+    try { chargeGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.03);
+      chargeOsc.stop(audioCtx.currentTime + 0.1); } catch(e){}
+    chargeOsc = null; chargeGain = null;
+  }
+
+  function spawnPop(text){
+    const p = document.createElement('div');
+    p.className = 'pop';
+    p.textContent = text;
+    p.style.left = (60 + Math.random()*120) + 'px';
+    p.style.top  = (50 + Math.random()*70) + 'px';
+    p.style.animation = 'popUp .9s ease-out forwards';
+    stage.appendChild(p);
+    setTimeout(()=>p.remove(), 900);
+  }
+
+  // 头上冒一圈转动的小星星（越猛星星越多、圈越大）
+  function spawnStars(power){
+    const ring = document.createElement('div');
+    ring.className = 'stars';
+    // 头顶中心：face 位于 stage 内 left:30 top:34，宽200 → 中心 x=130，头顶 y≈18
+    ring.style.left = '130px';
+    ring.style.top  = '18px';
+    const n = 5 + Math.round(power*3);          // 5~8 颗
+    const r = 34 + power*14;                     // 环半径
+    const glyphs = ['⭐','✨','🌟','💫'];
+    for(let i=0;i<n;i++){
+      const s = document.createElement('div');
+      s.className = 'st';
+      const a = (i/n)*Math.PI*2;
+      s.style.transform = 'translate(' + (Math.cos(a)*r) + 'px,' + (Math.sin(a)*r*0.55) + 'px)';
+      s.style.animationDelay = (Math.random()*0.4) + 's';
+      s.textContent = glyphs[i % glyphs.length];
+      ring.appendChild(s);
+    }
+    stage.appendChild(ring);
+    requestAnimationFrame(()=>ring.classList.add('show'));
+    setTimeout(()=>ring.remove(), 1900);
+  }
+
+  // 挨打的那侧脸鼓起红肿包
+  function showSwell(onLeft){
+    swell.style.left = onLeft ? '16px' : '122px';
+    swell.classList.remove('show'); void swell.offsetWidth;
+    swell.classList.add('show');
+  }
+
+  // ---- 渲染当前人格的脸 ----
+  function renderPersona(){
+    const p = PERSONA[pi];
+    face.dataset.hair    = p.hair;
+    face.dataset.brow    = p.brow || 'flat';
+    face.dataset.mouth   = p.mouth || 'neutral';
+    face.dataset.glasses = p.glasses || 'none';
+    face.dataset.fh      = p.fh || 'none';
+    face.dataset.hw      = p.hw || 'none';
+    face.style.setProperty('--skin', p.skin);
+    face.style.setProperty('--hair', p.hairColor);
+    face.style.setProperty('--brow', p.browColor || '#5a3a22');
+    face.style.setProperty('--lip',  p.lip || '#c05a7a');
+    face.style.setProperty('--glass',p.glass || '#333');
+    face.style.setProperty('--fh',   p.fhColor || '#5a3a22');
+    face.style.setProperty('--hw',   p.hwColor || '#fff');
+    prop.textContent = p.prop || '';
+    const g = GROUP[p.group];
+    target.innerHTML = '正在暴打：<b>' + p.code + ' ' + p.name + '</b>' +
+                       '<span class="grp" style="color:'+g.c+'">· ' + g.label + '</span>';
+    if(!busy) hint.textContent = LINES[p.code];
+    document.querySelectorAll('#personaRow .chip').forEach(function(el,i){
+      el.classList.toggle('active', i===pi);
+    });
+  }
+
+  function setTool(idx){
+    ti = idx;
+    hand.textContent = TOOLS[ti].emoji;
+    hint.textContent = TOOLS[ti].name + '：' + TOOLS[ti].hint;
+    document.querySelectorAll('#toolRow .chip').forEach(function(el,i){
+      el.classList.toggle('active', i===ti);
+    });
+  }
+
+  // ---- 蓄力 ----
+  function beginCharge(){
+    if(busy) return;
+    ensureAudio();
+    charging = true;
+    chargeStart = performance.now();
+    startChargeSound();
+    hint.textContent = '蓄力中…越久越猛！';
+    loopCharge();
+  }
+  function currentPower(){
+    return Math.min(1, (performance.now() - chargeStart) / MAX_CHARGE);
+  }
+  function loopCharge(){
+    if(!charging) return;
+    const p = currentPower();
+    powerFill.style.width = (p*100) + '%';
+    const spins = 1 + Math.round(p * (MAX_SPINS - 1));
+    powerLabel.textContent = p < 1 ? ('蓄力 ' + Math.round(p*100) + '% · 预计 ' + spins + ' 圈')
+                                   : ('💥 满蓄力！' + MAX_SPINS + ' 圈！');
+    const s = 1 - p*0.08;
+    const jitter = p*4;
+    face.style.transform = 'scale(' + s + ') translate(' +
+      ((Math.random()-.5)*jitter) + 'px,' + ((Math.random()-.5)*jitter) + 'px)';
+    updateChargeSound(p);
+    chargeRAF = requestAnimationFrame(loopCharge);
+  }
+
+  // ---- 释放：转 n 圈 ----
+  function release(){
+    if(!charging) return;
+    charging = false;
+    cancelAnimationFrame(chargeRAF);
+    stopChargeSound();
+    const p = currentPower();
+    powerFill.style.width = '0%';
+    powerLabel.textContent = '按住脸开始蓄力';
+    // 🥚 INTP 彩蛋：任你蓄多满，松手它都闪开
+    if(PERSONA[pi].code === 'INTP'){ intpDodge(p); return; }
+    const spins = 1 + Math.round(p * (MAX_SPINS - 1));
+    doSlap(p, spins);
+  }
+
+  // 🥚 INTP 闪身：不计数、不转圈，甩一句挑衅
+  function intpDodge(power){
+    busy = true;
+    // 纯粹的“咻——”破空声：手扫过空气，与力度无关，绝无击中感
+    if(!muted && audioCtx){
+      const sr = audioCtx.sampleRate, len = Math.floor(sr*0.26);
+      const buf = audioCtx.createBuffer(1, len, sr);
+      const d = buf.getChannelData(0);
+      // 先弱后强再收尾的“扫风”包络，没有击打那种瞬间起振
+      for(let i=0;i<d.length;i++){
+        const t=i/d.length;
+        const env = Math.sin(Math.PI*t);      // 中间最响，两头收
+        d[i]=(Math.random()*2-1)*env;
+      }
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const flt = audioCtx.createBiquadFilter(); flt.type='bandpass'; flt.Q.value=0.8;
+      const now = audioCtx.currentTime;
+      flt.frequency.setValueAtTime(1400, now);
+      flt.frequency.exponentialRampToValueAtTime(3600, now+0.13);   // 上滑=破空掠过
+      flt.frequency.exponentialRampToValueAtTime(1200, now+0.26);
+      const g = audioCtx.createGain(); g.gain.value = 0.22;          // 固定音量，与蓄力无关
+      src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+      src.start();
+    }
+    // 手挥空
+    hand.style.animation = 'none'; void hand.offsetWidth;
+    hand.style.animation = 'slapHand .4s ease-in';
+    // 巴掌从左侧扫来 → 抢在它到位前，往右后方一仰躲开（不随机，避免迎上去）
+    const anim = face.animate([
+      { transform:'translate(0,0) rotate(0)' },
+      { transform:'translate(52px,-16px) rotate(11deg)', offset:0.22 },
+      { transform:'translate(48px,-14px) rotate(10deg)', offset:0.5 },
+      { transform:'translate(0,0) rotate(0)' }
+    ], { duration: 520, easing:'cubic-bezier(.2,.9,.2,1)' });
+    spawnPop('💨没打中');
+    const line = INTP_TAUNTS[intpIdx % INTP_TAUNTS.length];
+    intpIdx++;
+    anim.onfinish = () => {
+      face.style.transform = 'none';
+      busy = false;
+      hint.textContent = '💢 INTP：' + line;
+    };
+  }
+
+  function doSlap(power, spins){
+    busy = true;
+    count++;
+    totalSpins += spins;
+    if(spins > bestSpins){ bestSpins = spins; elBest.textContent = bestSpins; }
+    elCount.textContent = count;
+    elSpins.textContent = totalSpins;
+    recordHit(PERSONA[pi].code, spins);   // 计入挨打排行榜
+
+    hand.style.animation = 'none'; void hand.offsetWidth;
+    hand.style.animation = 'slapHand .4s ease-in';
+
+    mark.style.animation = 'none'; void mark.offsetWidth;
+    const hitLeft = Math.random() < .5;
+    mark.style.left = (hitLeft ? '18px' : '112px');
+    mark.style.top  = '110px';
+    mark.style.animation = 'markShow .7s ease-out';
+
+    // 被打的那侧脸立刻鼓起红肿包
+    showSwell(hitLeft);
+
+    // piapiapia：转几圈就抽几下，蓄得越满连击越多
+    playHitBurst(power, spins);
+    const who = PERSONA[pi].name;
+    spawnPop(spins >= MAX_SPINS ? ('💥' + who + '×' + spins + '圈') : ('🌀' + spins + '圈'));
+    if(navigator.vibrate) navigator.vibrate(Math.round(30 + power*120));
+
+    const dir = Math.random()<.5 ? 1 : -1;
+    const total = dir * (spins * 360 + 12);
+    const spinMs = 500 + spins * 260;
+    face.classList.add('dizzy');
+    const anim = face.animate([
+      { transform: 'rotate(0deg) scale(1)' },
+      { transform: 'rotate(' + (dir*30) + 'deg) scale(1.05)', offset: 0.08 },
+      { transform: 'rotate(' + total + 'deg) scale(1)',       offset: 0.9 },
+      { transform: 'rotate(' + (dir*(spins*360)) + 'deg) scale(1)' }
+    ], { duration: spinMs, easing: 'cubic-bezier(.15,.7,.2,1)' });
+
+    anim.onfinish = () => {
+      face.style.transform = 'none';
+      face.classList.remove('dizzy');
+      busy = false;
+      // 转完停下，头上冒一圈小星星（眼冒金星）
+      spawnStars(power);
+      const P = PERSONA[pi];
+      if(spins >= MAX_SPINS) hint.textContent = '💢 ' + P.code + '：' + TAUNTS[P.code];
+      else if(spins >= 5) hint.textContent = P.code + ' 彻底转晕了 😵';
+      else if(spins >= 3) hint.textContent = '好家伙，' + P.code + ' 转了 ' + spins + ' 圈！';
+      else hint.textContent = '再按久一点，' + P.code + ' 能转更多圈 🌀';
+    };
+  }
+
+  // ---- 挨打排行榜（本地「我的」+ Supabase「全网」） ----
+  const BOARD_KEY = 'slapBoard.v1';
+  const boardList = document.getElementById('boardList');
+  let board = loadBoard();          // 本地：{code:{hits,spins,best}}
+  let globalData = {};              // 全网：{code:{hits,spins,best}}
+  let currentTab = 'local';         // 当前显示哪个榜
+  let globalOK = false;             // 全网 /api 是否连通
+  let pollTimer = null;             // 全网轮询定时器
+
+  function loadBoard(){
+    try {
+      const raw = localStorage.getItem(BOARD_KEY);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === 'object') ? obj : {};
+    } catch(e){ return {}; }
+  }
+  function saveBoard(){
+    try { localStorage.setItem(BOARD_KEY, JSON.stringify(board)); } catch(e){}
+  }
+  // 记一笔：本地立即累加；再把这巴掌上报给自家 /api（凭据在服务端，前端看不到）
+  function recordHit(code, spins){
+    const b = board[code] || (board[code] = {hits:0, spins:0, best:0});
+    b.hits  += 1;
+    b.spins += spins;
+    if(spins > b.best) b.best = spins;
+    saveBoard();
+    renderBoard();
+    pulseTab();
+    // 乐观更新全网本地副本，让「全网」tab 立刻有反馈；随后以服务端返回为准
+    const g = globalData[code] || (globalData[code] = {hits:0, spins:0, best:0});
+    g.hits += 1; g.spins += spins; if(spins > g.best) g.best = spins;
+    if(currentTab === 'global') renderBoard();
+    postHit(code, spins);
+  }
+  function postHit(code, spins){
+    if(!window.fetch) return;
+    fetch('/api/hit', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code: code, spins: spins })
+    }).then(function(res){
+      if(!res.ok) throw new Error('hit ' + res.status);
+      return res.json();
+    }).then(function(data){
+      if(data && data.board){ globalData = data.board; if(currentTab === 'global') renderBoard(); }
+      setGlobalOK(true);
+    }).catch(function(e){ console.warn('postHit', e); setGlobalOK(false); });
+  }
+  // 收起状态下更新了排名，把手抖一下提示
+  function pulseTab(){
+    const tab = document.getElementById('boardTab');
+    const bd  = document.getElementById('board');
+    if(!tab || !bd || !bd.classList.contains('collapsed')) return;
+    tab.classList.remove('pulse'); void tab.offsetWidth;
+    tab.classList.add('pulse');
+  }
+  // 当前 tab 决定渲染哪份数据
+  function renderBoard(){
+    if(currentTab === 'global') renderRows(globalData, globalEmptyMsg());
+    else renderRows(board, '还没人挨打～挑个人格开抽吧 👋');
+  }
+  function globalEmptyMsg(){
+    if(!globalOK) return '未连接全网 · 需部署到 Vercel 并配好 KV';
+    return '全网还没人开抽，快抢个沙发 🛋️';
+  }
+  // 把一份 {code:{...}} 数据渲染成榜单
+  function renderRows(dataMap, emptyMsg){
+    const rows = PERSONA
+      .map(function(p){
+        const b = dataMap[p.code];
+        return b ? {p:p, hits:b.hits, spins:b.spins, best:b.best} : null;
+      })
+      .filter(Boolean)
+      .sort(function(a,b){ return b.spins - a.spins || b.hits - a.hits; });
+
+    if(!rows.length){
+      boardList.innerHTML = '<div class="board-empty">' + emptyMsg + '</div>';
+      return;
+    }
+    const medals = ['🥇','🥈','🥉'];
+    boardList.innerHTML = rows.slice(0, 16).map(function(r, i){
+      const g = GROUP[r.p.group];
+      const pos = medals[i] || (i+1);
+      return '<div class="rank' + (i===0 ? ' top' : '') + '">' +
+        '<div class="pos">' + pos + '</div>' +
+        '<span class="grp-dot" style="background:' + g.c + '"></span>' +
+        '<div class="who"><span class="nm">' + r.p.name + '</span>' +
+        '<span class="cd">' + r.p.code + ' · ' + g.label + '</span></div>' +
+        '<div class="metric"><span class="mv">' + r.spins + '</span><span class="mu">圈</span>' +
+        '<div class="sub2">' + r.hits + ' 次 · 最多 ' + r.best + ' 圈</div></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // tab 切换：全网 tab 时藏掉「清空我的」，并开启轮询；切回本地则停轮询省流量
+  function switchTab(tab){
+    currentTab = tab;
+    document.querySelectorAll('#boardSeg .seg-btn').forEach(function(el){
+      el.classList.toggle('active', el.dataset.tab === tab);
+    });
+    document.getElementById('clearBoard').style.visibility = (tab === 'local') ? 'visible' : 'hidden';
+    renderBoard();
+    if(tab === 'global'){ fetchGlobal(); startPolling(); }
+    else stopPolling();
+  }
+  document.getElementById('boardSeg').addEventListener('click', function(e){
+    const btn = e.target.closest('.seg-btn');
+    if(btn) switchTab(btn.dataset.tab);
+  });
+
+  // ---- 全网榜：轮询自家 /api（凭据全在服务端，浏览器永远看不到 key） ----
+  function setGlobalOK(ok){
+    globalOK = ok;
+    const dot = document.getElementById('liveDot');
+    if(dot) dot.classList.toggle('on', ok);
+  }
+  function fetchGlobal(){
+    if(!window.fetch) return;
+    fetch('/api/board').then(function(res){
+      if(!res.ok) throw new Error('board ' + res.status);
+      return res.json();
+    }).then(function(data){
+      globalData = (data && data.board) || {};
+      setGlobalOK(true);
+      if(currentTab === 'global') renderBoard();
+    }).catch(function(e){ console.warn('fetchGlobal', e); setGlobalOK(false);
+      if(currentTab === 'global') renderBoard();
+    });
+  }
+  function startPolling(){
+    stopPolling();
+    pollTimer = setInterval(fetchGlobal, 4000);   // 每 4 秒刷一次 ≈ 近实时
+  }
+  function stopPolling(){
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  }
+  // 页面切到后台就停轮询，回来再续（省请求）
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) stopPolling();
+    else if(currentTab === 'global') startPolling();
+  });
+
+  // ---- 构建选择器 ----
+  function buildPickers(){
+    const prow = document.getElementById('personaRow');
+    PERSONA.forEach(function(p,i){
+      const el = document.createElement('div');
+      el.className = 'chip persona';
+      el.style.setProperty('--c', GROUP[p.group].c);
+      el.innerHTML = '<span class="code">'+p.code+'</span>' +
+                     '<span>'+p.name+'</span>';
+      el.addEventListener('click', function(){ pi=i; ensureAudio(); renderPersona(); });
+      prow.appendChild(el);
+    });
+    const trow = document.getElementById('toolRow');
+    TOOLS.forEach(function(t,i){
+      const el = document.createElement('div');
+      el.className = 'chip';
+      el.innerHTML = '<span class="emo">'+t.emoji+'</span><span>'+t.name+'</span>';
+      el.addEventListener('click', function(){ ensureAudio(); setTool(i); });
+      trow.appendChild(el);
+    });
+  }
+
+  // 事件：按下蓄力，松开/离开释放
+  stage.addEventListener('pointerdown', function(e){ e.preventDefault(); beginCharge(); });
+  window.addEventListener('pointerup',   function(){ release(); });
+  window.addEventListener('pointercancel', function(){ release(); });
+
+  document.getElementById('muteBtn').addEventListener('click', function(){
+    muted = !muted;
+    this.textContent = muted ? '🔇 音效关' : '🔊 音效开';
+    if(muted) stopChargeSound();
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    count=0; totalSpins=0; bestSpins=0;
+    elCount.textContent=0; elSpins.textContent=0; elBest.textContent=0;
+    hint.textContent = '按住脸蓄力，松手看它转几圈 🌀';
+  });
+  document.getElementById('clearBoard').addEventListener('click', function(){
+    if(confirm('清空「我的」记录？（全网榜不受影响）')){
+      board = {};
+      saveBoard();
+      renderBoard();
+    }
+  });
+
+  // 排行榜抽屉：点把手收起/展开，状态记进 localStorage
+  const boardEl = document.getElementById('board');
+  const COLLAPSE_KEY = 'slapBoardCollapsed';
+  function setCollapsed(v){
+    boardEl.classList.toggle('collapsed', v);
+    try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch(e){}
+  }
+  (function initDrawer(){
+    let v = false;                                  // 默认展开，先让你看见它在哪
+    try { const s = localStorage.getItem(COLLAPSE_KEY); if(s !== null) v = (s === '1'); } catch(e){}
+    setCollapsed(v);
+  })();
+  document.getElementById('boardTab').addEventListener('click', function(){
+    setCollapsed(!boardEl.classList.contains('collapsed'));
+  });
+
+  // 初始化
+  buildPickers();
+  setTool(0);
+  renderPersona();
+  renderBoard();
+  fetchGlobal();    // 先拉一次全网（切到「全网」tab 会自动开始轮询）
+})();
+</script>
+</body>
+</html>

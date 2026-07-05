@@ -1,0 +1,9 @@
+{
+  "name": "slap-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "打脸模拟器 · 全网挨打排行榜后端（Vercel KV）",
+  "dependencies": {
+    "@vercel/kv": "^2.0.0"
+  }
+}
